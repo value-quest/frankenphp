@@ -1,0 +1,67 @@
+name: Build FrankenPHP
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set build version name
+        run: echo "BUILD_VERSION=frankenphp-php${{ matrix.php-version }}" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            git \
+            musl-tools \
+            musl-dev \
+            pkg-config \
+            golang-go
+
+      - name: Build FrankenPHP
+        run: |
+          export CC="musl-gcc"
+          export CXX="musl-g++"
+          export LDFLAGS="-static"
+          export CFLAGS="-static"
+          export CXXFLAGS="-static"
+          export PHP_CONFIGURE_ARGS="--disable-shared \
+            --enable-static \
+            --disable-zend-signals \
+            --disable-libssh2 \
+            --disable-dns \
+            --disable-debug \
+            --disable-rpath \
+            --disable-phpdbg"
+          PHP_VERSION=${{ matrix.php-version }} ./build-static.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BUILD_VERSION }}
+          path: dist/frankenphp
+
+      - name: Create Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.BUILD_VERSION }}-${{ github.sha }}
+          name: ${{ env.BUILD_VERSION }}
+          files: dist/frankenphp
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
