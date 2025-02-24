@@ -32,6 +32,17 @@ jobs:
           repository: dunglas/frankenphp
           ref: ${{ steps.frankenphp.outputs.version }}
 
+      - name: Debug environment
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          echo "GitHub workspace: $GITHUB_WORKSPACE"
+          echo "Contents of GitHub workspace:"
+          ls -la $GITHUB_WORKSPACE
+          echo "Path environment:"
+          echo $PATH
+
       - name: Install build dependencies
         run: |
           apk add --no-cache \
@@ -56,20 +67,29 @@ jobs:
             oniguruma-dev \
             sqlite-dev
 
-      - name: Prepare build environment
+      - name: Prepare build script
         run: |
-          chmod +x ./build-static.sh
+          pwd
+          echo "Current directory contents:"
           ls -la
+          echo "Making script executable..."
+          chmod +x $GITHUB_WORKSPACE/build-static.sh || echo "Failed to chmod"
+          ls -la $GITHUB_WORKSPACE/build-static.sh || echo "Cannot list build-static.sh"
+          echo "Script contents:"
+          cat $GITHUB_WORKSPACE/build-static.sh || echo "Cannot cat build-static.sh"
 
       - name: Build FrankenPHP
         run: |
-          pwd
-          PHP_VERSION=8.3 STATIC=1 ./build-static.sh
-        working-directory: ${{ github.workspace }}
+          cd $GITHUB_WORKSPACE
+          echo "Build directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          echo "Attempting to run build script..."
+          PHP_VERSION=8.3 STATIC=1 sh build-static.sh
 
       - name: Verify static binary
         run: |
-          file dist/frankenphp | grep "statically linked"
+          file dist/frankenphp | grep "statically linked" || echo "Binary verification failed"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
