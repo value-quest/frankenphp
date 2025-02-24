@@ -3,6 +3,9 @@ name: Build FrankenPHP
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -109,19 +112,39 @@ jobs:
           go version
           echo "Running build script..."
           PHP_VERSION=8.3 STATIC=1 bash build-static.sh
+          echo "Build completed. Checking output:"
+          find . -name "frankenphp*"
+          ls -la dist/ || echo "dist/ directory not found"
+          ls -la dist/static-php-cli/ || echo "static-php-cli directory not found"
+
+      - name: Locate build artifacts
+        id: locate
+        shell: bash
+        run: |
+          BINARY_PATH=$(find . -name "frankenphp-linux-x86_64" -type f)
+          if [ -n "$BINARY_PATH" ]; then
+            echo "binary_path=${BINARY_PATH}" >> $GITHUB_OUTPUT
+            mkdir -p final_dist
+            cp "$BINARY_PATH" final_dist/frankenphp
+          else
+            echo "No binary found!"
+            exit 1
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: frankenphp-static-php8.3-${{ steps.frankenphp.outputs.version }}
-          path: dist/frankenphp
+          path: final_dist/frankenphp
+          if-no-files-found: error
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
+        if: success()
         with:
           tag_name: static-php8.3-${{ steps.frankenphp.outputs.version }}
           name: FrankenPHP Static ${{ steps.frankenphp.outputs.version }} with PHP 8.3
-          files: dist/frankenphp
+          files: final_dist/frankenphp
           draft: false
           prerelease: false
         env:
