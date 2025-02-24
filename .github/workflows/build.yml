@@ -7,26 +7,35 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: alpine:latest
+      image: alpine:edge
       options: --user root
     
     steps:
+      - name: Add repositories
+        run: |
+          echo "https://dl-cdn.alpinelinux.org/alpine/edge/main" > /etc/apk/repositories
+          echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
+          echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
+
       - name: Install basic tools
         run: |
+          apk update
           apk add --no-cache \
             curl \
             jq \
             git \
             build-base \
             go \
-            php81 \
-            php81-curl \
-            php81-openssl \
-            php81-phar \
-            php81-mbstring \
-            php81-json \
-            php81-iconv \
-            php81-zip
+            php83 \
+            php83-curl \
+            php83-openssl \
+            php83-phar \
+            php83-mbstring \
+            php83-tokenizer \
+            php83-iconv \
+            php83-zip \
+            php83-dom \
+            php83-xml
 
       - name: Install Composer
         run: |
@@ -89,7 +98,7 @@ jobs:
           echo "Directory contents:"
           ls -la
           echo "PHP version:"
-          php --version
+          php -v
           echo "Composer version:"
           composer --version
           echo "Running build script..."
