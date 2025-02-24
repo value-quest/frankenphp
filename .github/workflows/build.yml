@@ -32,16 +32,10 @@ jobs:
           repository: dunglas/frankenphp
           ref: ${{ steps.frankenphp.outputs.version }}
 
-      - name: Debug environment
+      - name: Configure Git
         run: |
-          echo "Current directory: $(pwd)"
-          echo "Directory contents:"
-          ls -la
-          echo "GitHub workspace: $GITHUB_WORKSPACE"
-          echo "Contents of GitHub workspace:"
-          ls -la $GITHUB_WORKSPACE
-          echo "Path environment:"
-          echo $PATH
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+          git config --global --list
 
       - name: Install build dependencies
         run: |
@@ -65,18 +59,15 @@ jobs:
             openssl-dev \
             curl-dev \
             oniguruma-dev \
-            sqlite-dev
-
-      - name: Prepare build script
-        run: |
-          pwd
-          echo "Current directory contents:"
-          ls -la
-          echo "Making script executable..."
-          chmod +x $GITHUB_WORKSPACE/build-static.sh || echo "Failed to chmod"
-          ls -la $GITHUB_WORKSPACE/build-static.sh || echo "Cannot list build-static.sh"
-          echo "Script contents:"
-          cat $GITHUB_WORKSPACE/build-static.sh || echo "Cannot cat build-static.sh"
+            sqlite-dev \
+            bzip2-dev \
+            freetype-dev \
+            libjpeg-turbo-dev \
+            libwebp-dev \
+            libzip-dev \
+            nghttp2-dev \
+            brotli-dev \
+            gd-dev
 
       - name: Build FrankenPHP
         run: |
@@ -84,12 +75,10 @@ jobs:
           echo "Build directory: $(pwd)"
           echo "Directory contents:"
           ls -la
-          echo "Attempting to run build script..."
+          echo "Git status:"
+          git status
+          echo "Running build script..."
           PHP_VERSION=8.3 STATIC=1 sh build-static.sh
-
-      - name: Verify static binary
-        run: |
-          file dist/frankenphp | grep "statically linked" || echo "Binary verification failed"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
