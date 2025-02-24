@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: alpine:latest
+      options: --user root
     
     steps:
       - name: Install basic tools
@@ -55,9 +56,16 @@ jobs:
             oniguruma-dev \
             sqlite-dev
 
+      - name: Prepare build environment
+        run: |
+          chmod +x ./build-static.sh
+          ls -la
+
       - name: Build FrankenPHP
         run: |
+          pwd
           PHP_VERSION=8.3 STATIC=1 ./build-static.sh
+        working-directory: ${{ github.workspace }}
 
       - name: Verify static binary
         run: |
