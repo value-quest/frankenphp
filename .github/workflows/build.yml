@@ -18,7 +18,20 @@ jobs:
             jq \
             git \
             build-base \
-            go
+            go \
+            php81 \
+            php81-curl \
+            php81-openssl \
+            php81-phar \
+            php81-mbstring \
+            php81-json \
+            php81-iconv \
+            php81-zip
+
+      - name: Install Composer
+        run: |
+          curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+          composer --version
 
       - name: Get latest FrankenPHP release
         id: frankenphp
@@ -75,8 +88,10 @@ jobs:
           echo "Build directory: $(pwd)"
           echo "Directory contents:"
           ls -la
-          echo "Git status:"
-          git status
+          echo "PHP version:"
+          php --version
+          echo "Composer version:"
+          composer --version
           echo "Running build script..."
           PHP_VERSION=8.3 STATIC=1 sh build-static.sh
 
