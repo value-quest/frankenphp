@@ -1,0 +1,81 @@
+name: Build FrankenPHP
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:latest
+    
+    steps:
+      - name: Install basic tools
+        run: |
+          apk add --no-cache \
+            curl \
+            jq \
+            git \
+            build-base \
+            go
+
+      - name: Get latest FrankenPHP release
+        id: frankenphp
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/dunglas/frankenphp/releases/latest | jq -r .tag_name)
+          echo "version=${LATEST}" >> $GITHUB_OUTPUT
+
+      - name: Checkout FrankenPHP
+        uses: actions/checkout@v4
+        with:
+          repository: dunglas/frankenphp
+          ref: ${{ steps.frankenphp.outputs.version }}
+
+      - name: Install build dependencies
+        run: |
+          apk add --no-cache \
+            autoconf \
+            automake \
+            bison \
+            cmake \
+            flex \
+            gcc \
+            g++ \
+            libtool \
+            make \
+            musl-dev \
+            re2c \
+            file \
+            pkgconf \
+            linux-headers \
+            zlib-dev \
+            libxml2-dev \
+            openssl-dev \
+            curl-dev \
+            oniguruma-dev \
+            sqlite-dev
+
+      - name: Build FrankenPHP
+        run: |
+          PHP_VERSION=8.3 STATIC=1 ./build-static.sh
+
+      - name: Verify static binary
+        run: |
+          file dist/frankenphp | grep "statically linked"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frankenphp-static-php8.3-${{ steps.frankenphp.outputs.version }}
+          path: dist/frankenphp
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: static-php8.3-${{ steps.frankenphp.outputs.version }}
+          name: FrankenPHP Static ${{ steps.frankenphp.outputs.version }} with PHP 8.3
+          files: dist/frankenphp
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
