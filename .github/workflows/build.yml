@@ -26,6 +26,7 @@ jobs:
             git \
             build-base \
             go \
+            bash \
             php83 \
             php83-curl \
             php83-openssl \
@@ -41,6 +42,12 @@ jobs:
         run: |
           curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
           composer --version
+
+      - name: Setup Go environment
+        run: |
+          echo "GOPATH=/root/go" >> $GITHUB_ENV
+          echo "/root/go/bin" >> $GITHUB_PATH
+          mkdir -p /root/go/bin
 
       - name: Get latest FrankenPHP release
         id: frankenphp
@@ -92,17 +99,16 @@ jobs:
             gd-dev
 
       - name: Build FrankenPHP
+        shell: bash
         run: |
           cd $GITHUB_WORKSPACE
           echo "Build directory: $(pwd)"
-          echo "Directory contents:"
-          ls -la
-          echo "PHP version:"
-          php -v
-          echo "Composer version:"
-          composer --version
+          echo "Go environment:"
+          go env
+          echo "Go version:"
+          go version
           echo "Running build script..."
-          PHP_VERSION=8.3 STATIC=1 sh build-static.sh
+          PHP_VERSION=8.3 STATIC=1 bash build-static.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
