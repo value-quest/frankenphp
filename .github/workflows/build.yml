@@ -6,7 +6,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: alpine:latest
+    
     steps:
+      - name: Install basic tools
+        run: |
+          apk add --no-cache \
+            curl \
+            jq \
+            git \
+            build-base \
+            go
+
       - name: Get latest FrankenPHP release
         id: frankenphp
         run: |
@@ -19,28 +31,49 @@ jobs:
           repository: dunglas/frankenphp
           ref: ${{ steps.frankenphp.outputs.version }}
 
-      - name: Install dependencies
+      - name: Install build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            golang-go
+          apk add --no-cache \
+            autoconf \
+            automake \
+            bison \
+            cmake \
+            flex \
+            gcc \
+            g++ \
+            libtool \
+            make \
+            musl-dev \
+            re2c \
+            file \
+            pkgconf \
+            linux-headers \
+            zlib-dev \
+            libxml2-dev \
+            openssl-dev \
+            curl-dev \
+            oniguruma-dev \
+            sqlite-dev
 
       - name: Build FrankenPHP
         run: |
-          PHP_VERSION=8.3 ./build-static.sh
+          PHP_VERSION=8.3 STATIC=1 ./build-static.sh
+
+      - name: Verify static binary
+        run: |
+          file dist/frankenphp | grep "statically linked"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: frankenphp-php8.3-${{ steps.frankenphp.outputs.version }}
+          name: frankenphp-static-php8.3-${{ steps.frankenphp.outputs.version }}
           path: dist/frankenphp
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: php8.3-${{ steps.frankenphp.outputs.version }}
-          name: FrankenPHP ${{ steps.frankenphp.outputs.version }} with PHP 8.3
+          tag_name: static-php8.3-${{ steps.frankenphp.outputs.version }}
+          name: FrankenPHP Static ${{ steps.frankenphp.outputs.version }} with PHP 8.3
           files: dist/frankenphp
           draft: false
           prerelease: false
